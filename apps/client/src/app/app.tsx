@@ -2,6 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { AuthProvider } from './contexts/auth-provider/auth-provider';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ApplicationFrame from './layouts/application-frame/application-frame';
+import PrivateRoute from './containers/private-route/private-route';
 import Header from './layouts/header/header';
 import Navbar from './layouts/navbar/navbar';
 import Sidebar from './layouts/sidebar/sidebar';
@@ -35,16 +36,30 @@ export function App() {
           >
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/signin" element={<Signin />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/groups" element={<Groups />} />
-              <Route path="/groups/:groupId" element={<Group />} />
-              <Route path="/create" element={<Create />} />
-              <Route path="/create/:createId" element={<Create />} />
-              <Route path="/games" element={<Games />} />
-              <Route path="/games/:gameId" element={<Game />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route
+                element={<PrivateRoute hasToBeAuth={false} isAuth={true} />}
+              >
+                <Route path="/signin" element={<Signin />} />
+                <Route path="/signup" element={<Signup />} />
+              </Route>
+              <Route
+                element={
+                  <PrivateRoute
+                    hasToBeAuth={true}
+                    redirectPath="/"
+                    isAuth={true}
+                  />
+                }
+              >
+                <Route path="/groups" element={<Groups />} />
+                <Route path="/groups/:groupId" element={<Group />} />
+                <Route path="/create" element={<Create />} />
+                <Route path="/create/:createId" element={<Create />} />
+                <Route path="/games" element={<Games />} />
+                <Route path="/games/:gameId" element={<Game />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
             </Routes>
           </ApplicationFrame>
         </BrowserRouter>

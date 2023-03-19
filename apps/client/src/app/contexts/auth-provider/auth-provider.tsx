@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: React.PropsWithChildren) => {
   }, []);
 
   const signUp: TSignUpFunction = async (params) => {
-    await pb.collection('users').create({ params });
+    await pb.collection('users').create(params);
   };
 
   const signIn: TSignInFunction = async ({ email, password }) => {
