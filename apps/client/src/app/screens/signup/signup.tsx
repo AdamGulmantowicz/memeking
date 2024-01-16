@@ -1,12 +1,10 @@
-import { TextInput, Button, Group, Center } from '@mantine/core';
+import { TextInput, Button, Group, Center, PasswordInput } from '@mantine/core';
 import { useForm, hasLength } from '@mantine/form/';
 import { useAuthContext } from '../../contexts/auth-provider/auth-provider';
 import { useTranslation } from 'react-i18next';
+import PasswordStrenghtInput from '../../components/password-input/password-strength-input';
 
-/* eslint-disable-next-line */
-export interface ISignupProps {}
-
-export function Signup(props: ISignupProps) {
+export function Signup() {
   const { signUp } = useAuthContext();
   const { t } = useTranslation();
 
@@ -15,8 +13,8 @@ export function Signup(props: ISignupProps) {
       username: '',
       email: '',
       emailVisibility: true,
-      password: '',
-      passwordConfirm: '',
+      password: 'secret',
+      passwordConfirm: 'secret',
       name: '',
     },
     validate: {
@@ -26,6 +24,8 @@ export function Signup(props: ISignupProps) {
         { min: 2, max: 10 },
         'Name must be 2-10 characters long'
       ),
+      passwordConfirm: (value, values) =>
+        value !== values.password ? 'Passwords did not match' : null,
     },
   });
   return (
@@ -34,30 +34,26 @@ export function Signup(props: ISignupProps) {
         <form onSubmit={form.onSubmit((values) => signUp(values))}>
           <TextInput
             withAsterisk
-            label={t('form.username')}
-            placeholder={t('form.username')}
+            label={t('signup.username')}
+            placeholder={t('signup.username')}
             {...form.getInputProps('username')}
           />
           <TextInput
             withAsterisk
-            label={t('form.name')}
-            placeholder={t('form.placeholderName')}
+            label={t('signup.name')}
+            placeholder={t('signup.placeholderName')}
             {...form.getInputProps('name')}
           />
           <TextInput
             withAsterisk
-            label={t('form.email')}
-            placeholder={t('form.placeholderEmail')}
+            label={t('signup.email')}
+            placeholder={t('signup.placeholderEmail')}
             {...form.getInputProps('email')}
           />
-          <TextInput
+          <PasswordStrenghtInput {...form.getInputProps('password')} />
+          <PasswordInput
             withAsterisk
-            label={t('form.password')}
-            {...form.getInputProps('password')}
-          />
-          <TextInput
-            withAsterisk
-            label={t('form.confirm')}
+            label={t('signup.confirm')}
             {...form.getInputProps('passwordConfirm')}
           />
 

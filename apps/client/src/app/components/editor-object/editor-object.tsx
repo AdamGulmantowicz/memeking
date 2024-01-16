@@ -44,7 +44,7 @@ export function EditorObject({ id, object }: EditorObjectProps) {
       transformerRef.current.nodes([objectRef.current]);
       transformerRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected]);
+  }, [isSelected, focusedNodeRef]);
 
   if (!Component) return null;
 

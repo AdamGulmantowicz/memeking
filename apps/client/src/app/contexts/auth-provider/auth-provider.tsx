@@ -1,63 +1,45 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import React, { useEffect, useContext, useReducer } from 'react';
 import { pb } from '../../utils/pocketbase';
-import { Record, Admin } from 'pocketbase';
 import { useUser, useUserSubscription } from '../../hooks/pb-utils';
+import {
+  IAuthContext,
+  IUser,
+  TSignUpFunction,
+  TSignInFunction,
+  TLogoutFunction,
+  TUpdateUserBackgroundFunction,
+  TUpdateUserAvatarFunction,
+} from './auth-provider.interface';
+import { authReducer, IAuthState } from './auth-reducer';
 
-export type TSignInFunction = (params: {
-  email: string;
-  password: string;
-}) => Promise<void>;
-
-export type TSignUpFunction = (params: {
-  email: string;
-  password: string;
-  passwordConfirm: string;
-  name: string;
-  username: string;
-  emailVisibility?: boolean;
-}) => Promise<void>;
-
-export type TLogoutFunction = () => void;
-
-export interface IUser extends Record {
-  email: string;
-  avatar: string;
-  followers: string[];
-}
-export type TUseUpdateUser = (params: IUser) => Promise<void>;
-export type TUserModel = Record | Admin | null;
-
-export interface IAuthContext {
-  signIn: TSignInFunction;
-  signUp: TSignUpFunction;
-  logout: TLogoutFunction;
-  user: IUser | null;
-  isLoggedIn: boolean;
-  isAuthLoading: boolean;
-  isLoading: boolean;
-  updateCurrentUser: (
-    data: Partial<IUser>,
-    overrideId?: string | undefined
-  ) => Promise<void>;
-}
+const initialState: IAuthState = {
+  user: null,
+  isLoading: false,
+  isLoggedIn: false,
+  error: '',
+};
 
 export const AuthContext = React.createContext<IAuthContext | null>(null);
 
-export const AuthProvider = ({ children }: React.PropsWithChildren) => {
-  const [user, setUser] = useState<IUser | null>(null);
-  const isLoggedIn = useMemo(() => !!user, [user]);
-  const [isLoading, setIsLoading] = useState(true);
+export function AuthProvider({ children }: React.PropsWithChildren) {
+  const [{ user, isLoading, isLoggedIn, error }, dispatch] = useReducer(
+    authReducer,
+    initialState
+  );
+
   const { loading, updateOne } = useUser(user?.id);
   const { data: updatedUser } = useUserSubscription(user?.id || '');
 
   useEffect(() => {
-    setUser(updatedUser as IUser);
+    dispatch({ type: 'AUTH_SUCCESS', payload: updatedUser as IUser });
   }, [updatedUser]);
 
   useEffect(() => {
     const unregister = pb.authStore.onChange((token, arg) => {
-      setUser(pb.authStore.model as IUser);
-      setIsLoading(false);
+      dispatch({
+        type: 'AUTH_SUCCESS',
+        payload: pb.authStore.model as IUser,
+      });
     });
 
     return () => {
@@ -68,16 +50,15 @@ export const AuthProvider = ({ children }: React.PropsWithChildren) => {
   useEffect(() => {
     const refreshAuth = async () => {
       try {
-        setIsLoading(true);
+        dispatch({ type: 'LOADING', payload: null });
         await pb.collection('users').authRefresh();
       } catch (e) {
         console.error(e);
-
+        dispatch({ type: 'AUTH_FAILURE', payload: (e as Error).message });
         // TODO create interface for Pocketbase errors
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         if ((e as Error).status === 401) {
-          setIsLoading(false);
           logout();
         }
       }
@@ -88,30 +69,42 @@ export const AuthProvider = ({ children }: React.PropsWithChildren) => {
 
   const signUp: TSignUpFunction = async (params) => {
     try {
-      setIsLoading(true);
-
+      dispatch({ type: 'LOADING', payload: null });
       await pb.collection('users').create(params);
     } catch (e) {
       console.error(e);
-      setIsLoading(false);
+      dispatch({ type: 'AUTH_FAILURE', payload: (e as Error).message });
     }
-    setIsLoading(false);
+    dispatch({ type: 'LOADING_STOP', payload: null });
+    const loginData = { email: params.email, password: params.password };
+    signIn(loginData);
   };
 
   const signIn: TSignInFunction = async ({ email, password }) => {
     try {
-      setIsLoading(true);
+      dispatch({ type: 'LOADING', payload: null });
 
       await pb.collection('users').authWithPassword(email, password);
     } catch (e) {
-      console.error(e);
-      setIsLoading(false);
+      dispatch({ type: 'AUTH_FAILURE', payload: (e as Error).message });
     }
-    setIsLoading(false);
+    dispatch({ type: 'LOADING_STOP', payload: null });
   };
 
   const logout: TLogoutFunction = async () => {
     pb.authStore.clear();
+    dispatch({ type: 'SIGNOUT', payload: null });
+  };
+
+  const updateUserAvatar: TUpdateUserAvatarFunction = (image) => {
+    updateOne({
+      avatar: image[0],
+    });
+  };
+  const updateUserBackground: TUpdateUserBackgroundFunction = (image) => {
+    updateOne({
+      backgroundImage: image[0],
+    });
   };
 
   return (
@@ -125,12 +118,14 @@ export const AuthProvider = ({ children }: React.PropsWithChildren) => {
         isLoading: loading,
         isAuthLoading: isLoading,
         updateCurrentUser: updateOne,
+        updateUserAvatar,
+        updateUserBackground,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
 export const useAuthContext = () => {
   const data = useContext(AuthContext);

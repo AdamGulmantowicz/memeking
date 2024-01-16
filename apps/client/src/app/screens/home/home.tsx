@@ -1,11 +1,16 @@
-/* eslint-disable-next-line */
-export interface HomeProps {}
+import { useAuthContext } from '../../contexts/auth-provider/auth-provider';
+import { FeedProvider } from '../../contexts/feed-provider/feed-provider';
+import Feed from '../feed/feed';
+import Signin from '../signin/signin';
 
-export function Home(props: HomeProps) {
-  return (
-    <div>
-      <h1>Welcome to Home!</h1>
-    </div>
+export function Home() {
+  const { isLoggedIn } = useAuthContext();
+  return isLoggedIn ? (
+    <FeedProvider>
+      <Feed groupFeed={false} />
+    </FeedProvider>
+  ) : (
+    <Signin />
   );
 }
 

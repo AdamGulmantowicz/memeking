@@ -1,54 +1,45 @@
-import { Group, NavLink } from '@mantine/core';
-import { useUserList } from '../../hooks/pb-utils';
-import { useState } from 'react';
-import UserSearch from '../search/search';
-import { User } from 'tabler-icons-react';
-import {
-  TUserModel,
-  useAuthContext,
-} from '../../contexts/auth-provider/auth-provider';
-
-/* eslint-disable-next-line */
+import { Flex, ScrollArea } from '@mantine/core';
+import UserSearch from '../user-search/user-search';
+import UserList from '../user-list/user-list';
+import { useChatContext } from '../../contexts/chat-provider/chat-provider';
+import UserListItemInline from '../user-list-item-inline/user-list-item-inline';
+import LoaderComponent from '../loader/loader';
 
 export function FollowersSearch() {
-  const { getList, result } = useUserList();
-  const { user, updateCurrentUser, isLoading } = useAuthContext();
-  const [active, setActive] = useState(false);
-
-  const filterQueryResult = (currentUser: TUserModel) => {
-    return result?.filter((user) => user.id !== currentUser?.id);
-  };
-
-  if (!user) return null;
+  const {
+    handleSearch,
+    followersSearchList,
+    followingList,
+    handleAddFollowing,
+    handleRemoveFollowing,
+    isLoading,
+  } = useChatContext();
 
   return (
-    <Group>
-      <NavLink
-        label="Search"
-        childrenOffset={0}
-        active={active}
-        variant="filled"
-        icon={<User />}
-        onClick={() => setActive(!active)}
-      >
-        <UserSearch
-          onAddUser={(id) => {
-            updateCurrentUser({
-              followers: [...user.followers, id],
-            });
-          }}
-          onRemoveUser={(id) =>
-            updateCurrentUser({
-              followers: user.followers.filter(
-                (follower: string) => follower !== id
-              ),
-            })
-          }
-          values={user?.followers}
-          loading={isLoading}
-        />
-      </NavLink>
-    </Group>
+    <Flex>
+      <UserSearch handleSearch={handleSearch}>
+        <LoaderComponent isLoading={isLoading}>
+          <ScrollArea type="hover">
+            <UserList
+              listItem={(item, values) => (
+                <UserListItemInline
+                  user={item}
+                  values={values}
+                  onAddUser={handleAddFollowing}
+                  onRemoveUser={handleRemoveFollowing}
+                  itemActive={false}
+                  isLoading={isLoading}
+                />
+              )}
+              userList={followersSearchList}
+              currentList={followingList}
+              isLoading={isLoading}
+              hideExisting={false}
+            />
+          </ScrollArea>
+        </LoaderComponent>
+      </UserSearch>
+    </Flex>
   );
 }
 

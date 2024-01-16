@@ -1,0 +1,8 @@
+.chat-container {
+  position: fixed;
+  display: flex;
+  gap: 0.5rem;
+  bottom: 5%;
+  left: 3%;
+  z-index: 200;
+}

@@ -1,0 +1,6 @@
+.emoji-container {
+  position: absolute;
+  z-index: 500;
+  bottom: 15rem;
+  left: 3rem;
+}

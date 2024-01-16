@@ -1,16 +1,15 @@
-import { Text } from '@mantine/core';
-import FollowersSearch from '../../components/followers-search/followers-search';
-import FollowingList from '../../components/user-list/following-list';
+import FollowingList from '../../components/following-list/following-list';
 import AuthLoader from '../../components/auth-loader/auth-loader';
-/* eslint-disable-next-line */
-export interface SidebarProps {}
+import { Stack } from '@mantine/core';
+import { useAuthContext } from '../../contexts/auth-provider/auth-provider';
 
-export function Sidebar(props: SidebarProps) {
+export function Sidebar() {
+  const { isLoggedIn } = useAuthContext();
+
   return (
     <div>
-      <FollowersSearch />
       <AuthLoader>
-        <FollowingList />
+        <Stack align="stretch">{isLoggedIn && <FollowingList />}</Stack>
       </AuthLoader>
     </div>
   );

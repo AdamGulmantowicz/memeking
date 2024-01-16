@@ -2,7 +2,6 @@ import { useForm } from '@mantine/form';
 import { Textarea, Button, Group } from '@mantine/core';
 import { ObjectScheme, TextScheme } from '../../types';
 
-/* eslint-disable-next-line */
 export interface TextObjectFormProps {
   onSubmit: (values: ObjectScheme) => void;
   object: TextScheme;

@@ -40,3 +40,6 @@ Thumbs.db
 
 # DB
 pocketbase/pb_data/
+
+# ENV
+.env

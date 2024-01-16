@@ -1,20 +1,31 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { pb } from '../utils/pocketbase';
 import { ListResult, Record, RecordService } from 'pocketbase';
-import { IUser } from '../contexts/auth-provider/auth-provider';
+import { IUser } from '../contexts/auth-provider/auth-provider.interface';
+import { IPost } from '../contexts/post-provider/post-provider.interface';
+import { IComment } from '../contexts/comment-provider/comment-provider.interface';
+import { IGroup } from '../contexts/group-provider/group-provider.interface';
 
 const createPbCollection = (collectionName: string) =>
   pb.collection(collectionName);
+pb.autoCancellation(false);
 
 const gameCollection = createPbCollection('game');
 const userCollection = createPbCollection('users');
 const roundCollection = createPbCollection('round');
 const memeCollection = createPbCollection('meme');
+const chatCollection = createPbCollection('chats');
+const messageCollection = createPbCollection('messages');
+const postCollection = createPbCollection('posts');
+const commentCollection = createPbCollection('comments');
+const groupCollection = createPbCollection('groups');
 
-export const createSearchHook = (collection: RecordService) => {
+export const createSearchHook = <T extends Record>(
+  collection: RecordService
+) => {
   return () => {
-    const [data, setData] = useState<ListResult | null>(null);
-    const [result, setResult] = useState<Record[] | null>(null);
+    const [data, setData] = useState<ListResult<T> | T[] | null>(null);
+    const [result, setResult] = useState<T[] | null>(null);
     const [loading, setLoading] = useState(true);
 
     const items = useMemo(
@@ -25,23 +36,33 @@ export const createSearchHook = (collection: RecordService) => {
     const getList = useCallback(
       async ({ page = 1, perPage = 10, queryParams = {} }) => {
         setLoading(true);
-        const result = await collection.getList(page, perPage, queryParams);
+        const result = await collection.getList<T>(page, perPage, queryParams);
         setData(result);
         setResult(result.items);
         setLoading(false);
-        console.log(result);
       },
       []
     );
 
     const getFullList = useCallback(async (queryParams = {}) => {
       setLoading(true);
-      setData(null);
-      setResult(await collection.getFullList(queryParams));
+      const result = await collection.getFullList<T>(queryParams);
+      setData(result);
+      setResult(result);
       setLoading(false);
     }, []);
 
-    return { data, result, loading, items, getList, getFullList };
+    return useMemo(
+      () => ({
+        data,
+        result,
+        loading,
+        items,
+        getList,
+        getFullList,
+      }),
+      [data, getFullList, getList, items, loading, result]
+    );
   };
 };
 
@@ -54,18 +75,25 @@ export const createCRUDHook = <T extends Record>(collection: RecordService) => {
       async (query = {}, overrideId?: string) => {
         if (!id && !overrideId) throw new Error('No id provided');
         setLoading(true);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const result = (await collection.getOne(id || overrideId, query)) as T;
+
+        const result = (await collection.getOne(
+          (overrideId ? overrideId : id) as string,
+          query
+        )) as T;
         setData(result);
         setLoading(false);
       },
       [id]
     );
 
-    const createOne = useCallback(async (data: T) => {
+    const createOne = useCallback(async (data: Partial<T>) => {
+      const formData = new FormData();
+      for (const key in data) {
+        formData.append(key, data[key] as string | Blob);
+      }
+
       setLoading(true);
-      const result = (await collection.create(data)) as T;
+      const result = (await collection.create(formData)) as T;
       setData(result);
       setLoading(false);
     }, []);
@@ -74,18 +102,18 @@ export const createCRUDHook = <T extends Record>(collection: RecordService) => {
       async (data: Partial<T>, overrideId?: string) => {
         if (!id && !overrideId) {
           throw new Error('No id provided');
-          return;
+        }
+        const formData = new FormData();
+        for (const key in data) {
+          formData.append(key, data[key] as string | Blob);
         }
         setLoading(true);
         const result = (await collection.update(
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          overrideId ? overrideId : id,
-          data
+          (overrideId ? overrideId : id) as string,
+          formData
         )) as T;
         setData(result);
         setLoading(false);
-        console.log(result);
       },
       [id]
     );
@@ -94,11 +122,7 @@ export const createCRUDHook = <T extends Record>(collection: RecordService) => {
       async (overrideId?: string) => {
         if (!id && !overrideId) throw new Error('No id provided');
         setLoading(true);
-        await collection.delete(
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          overrideId ? overrideId : id
-        );
+        await collection.delete((overrideId ? overrideId : id) as string);
         setData(null);
         setLoading(false);
       },
@@ -142,13 +166,28 @@ export const useGame = createCRUDHook(gameCollection);
 export const useUser = createCRUDHook<IUser>(userCollection);
 export const useRound = createCRUDHook(roundCollection);
 export const useMeme = createCRUDHook(memeCollection);
+export const useChat = createCRUDHook(chatCollection);
+export const useMessage = createCRUDHook(messageCollection);
+export const usePost = createCRUDHook(postCollection);
+export const useComment = createCRUDHook(commentCollection);
+export const useGroup = createCRUDHook<IGroup>(groupCollection);
 
 export const useGameList = createSearchHook(gameCollection);
 export const useUserList = createSearchHook(userCollection);
 export const useRoundList = createSearchHook(roundCollection);
 export const useMemeList = createSearchHook(memeCollection);
+export const useChatList = createSearchHook(chatCollection);
+export const useMessageList = createSearchHook(messageCollection);
+export const usePostList = createSearchHook<IPost>(postCollection);
+export const useCommentList = createSearchHook<IComment>(commentCollection);
+export const useGroupList = createSearchHook<IGroup>(groupCollection);
 
 export const useGameSubscription = createSubscriptionHook(gameCollection);
 export const useUserSubscription = createSubscriptionHook(userCollection);
 export const useRoundSubscription = createSubscriptionHook(roundCollection);
 export const useMemeSubscription = createSubscriptionHook(memeCollection);
+export const useChatSubscription = createSubscriptionHook(chatCollection);
+export const useMessageSubscription = createSubscriptionHook(messageCollection);
+export const usePostSubscription = createSubscriptionHook(postCollection);
+export const useCommentSubscription = createSubscriptionHook(commentCollection);
+export const useGroupSubscription = createSubscriptionHook(groupCollection);
